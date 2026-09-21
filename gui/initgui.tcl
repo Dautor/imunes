@@ -68,9 +68,8 @@
 #      values are edit and exec.
 #    * grid -- control variable representing grid distance. All new
 #      elements on the
+#      grid_coord_visible -- list of reasons why the grid is visible
 #      canvas are snaped to grid. Default value is 24.
-#    * sizex -- X size of the canvas.
-#    * sizey -- Y size of the canvas.
 #    * curcanvas -- the value of the current canvas.
 #    * autorearrange_enabled -- control variable indicating is
 #      autorearrange enabled.
@@ -112,7 +111,9 @@ set cursorState 0
 set clock_seconds 0
 
 global grid autorearrange_enabled
-set grid 24
+set grid 10
+global grid_coord_visible
+set grid_coord_visible {}
 set autorearrange_enabled 0
 
 # resize Oval/Rectangle, "false" or direction: north/west/east/...
@@ -1185,9 +1186,7 @@ set main_canvas_elem [canvas $mf.canvas_elem \
 	-bd 0 \
 	-relief sunken \
 	-highlightthickness 0 \
-	-background gray \
-	-xscrollcommand "$mf.hframe.scroll set" \
-	-yscrollcommand "$mf.vframe.scroll set"]
+	-background white]
 
 canvas $mf.hframe.t \
 	-width 160 \
@@ -1234,20 +1233,9 @@ bind $mf.hframe.t <5> {
 	switchCanvas next
 }
 
-#scrollbar $mf.hframe.scroll -orient horiz -command "$main_canvas_elem xview" \
-#	-bd 1 -width 14
-#scrollbar $mf.vframe.scroll -command "$main_canvas_elem yview" \
-#	-bd 1 -width 14
-#scrollbar $mf.hframe.ts -orient horiz -command "$mf.hframe.t xview" \
-#	-bd 1 -width 14
-
-ttk::scrollbar $mf.hframe.scroll -orient horiz -command "$main_canvas_elem xview"
-ttk::scrollbar $mf.vframe.scroll -command "$main_canvas_elem yview"
 ttk::scrollbar $mf.hframe.ts -orient horiz -command ".panwin.f1.hframe.t xview"
 pack $mf.hframe.ts -side left -padx 0 -pady 0
 pack $mf.hframe.t -side left -padx 0 -pady 0 -fill both -expand true
-pack $mf.hframe.scroll -side left -padx 0 -pady 0 -fill both -expand true
-pack $mf.vframe.scroll -side top -padx 0 -pady 0 -fill both -expand true
 pack $mf.grid -expand yes -fill both -padx 1 -pady 1
 grid rowconfig $mf.grid 0 -weight 1 -minsize 0
 grid columnconfig $mf.grid 0 -weight 1 -minsize 0
@@ -1345,7 +1333,7 @@ foreach annotation_type $all_annotation_types {
 $main_canvas_elem bind selectmark <Any-Enter> "selectmarkEnter %x %y"
 $main_canvas_elem bind selectmark <Any-Leave> "selectmarkLeave %x %y"
 
-$main_canvas_elem bind background $rightClick "button3background %x %y"
+bind $main_canvas_elem $rightClick "button3background %x %y"
 $main_canvas_elem bind grid $rightClick "button3background %x %y"
 
 if { $isOSmac_gui } {
@@ -1360,13 +1348,16 @@ if { $isOSmac_gui } {
 		$main_canvas_elem bind $annotation_type <Control-Button-1> "button3annotation $annotation_type %x %y"
 	}
 
-	$main_canvas_elem bind background <Control-Button-1> "button3background %x %y"
+	bind $main_canvas_elem <Control-Button-1> "button3background %x %y"
 	$main_canvas_elem bind grid <Control-Button-1> "button3background %x %y"
 }
 
 $main_canvas_elem bind point <Any-Enter> "pointEnter"
 $main_canvas_elem bind point $rightClick "removePointGUI"
 $main_canvas_elem bind point <Any-Leave> "$main_canvas_elem config -cursor left_ptr"
+
+# TODO: do not overdraw when something else is trying to display info
+bind $main_canvas_elem <Motion> ".bottom.textbox configure -text \[getCoords \"%x %y\"]"
 
 bind $main_canvas_elem <1> "button1 %x %y none"
 bind $main_canvas_elem <Control-Button-1> "button1 %x %y ctrl"
@@ -1375,17 +1366,35 @@ bind $main_canvas_elem <B1-ButtonRelease> "button1-release %x %y"
 bind . <Delete> deleteSelection
 bind . <Shift-Delete> "deleteSelection 0 no_warning"
 
+bind $main_canvas_elem <Control-Button-4> "zoom up; break"
+bind $main_canvas_elem <Control-Button-5> "zoom down; break"
+
+bind . <KeyPress> {
+    if { "%K" in "Control_L Control_R" } {
+		set grid_coord_visible [addToList $grid_coord_visible "zoom"]
+		redrawGrid
+    }
+}
+bind . <KeyRelease> {
+    if { "%K" in "Control_L Control_R" } {
+		set grid_coord_visible [removeFromList $grid_coord_visible "zoom"]
+		redrawGrid
+    }
+}
+
 # Scrolling and panning support
-bind $main_canvas_elem <2> "$main_canvas_elem scan mark %x %y"
-bind $main_canvas_elem <B2-Motion> "$main_canvas_elem scan dragto %x %y 1"
-bind $main_canvas_elem <4> "$main_canvas_elem yview scroll -1 units"
-bind $main_canvas_elem <5> "$main_canvas_elem yview scroll 1 units"
-bind $main_canvas_elem <Shift-4> "$main_canvas_elem xview scroll -1 units"
-bind $main_canvas_elem <Shift-5> "$main_canvas_elem xview scroll 1 units"
-bind . <Right> "$mf.canvas_elem xview scroll 1 units"
-bind . <Left> "$mf.canvas_elem xview scroll -1 units"
-bind . <Down> "$mf.canvas_elem yview scroll 1 units"
-bind . <Up> "$mf.canvas_elem yview scroll -1 units"
+bind $main_canvas_elem <2> "$main_canvas_elem scan mark %x %y; set grid_coord_visible \[addToList \$grid_coord_visible \"move\"\]; redrawGrid"
+bind $main_canvas_elem <B2-ButtonRelease> "set grid_coord_visible \[removeFromList \$grid_coord_visible \"move\"\]; redrawGrid"
+bind $main_canvas_elem <B2-Motion> "$main_canvas_elem scan dragto %x %y 1; redrawGrid"
+bind $main_canvas_elem <4> "$main_canvas_elem yview scroll -1 units; redrawGrid"
+bind $main_canvas_elem <5> "$main_canvas_elem yview scroll 1 units; redrawGrid"
+bind $main_canvas_elem <Shift-4> "$main_canvas_elem xview scroll -1 units; redrawGrid"
+bind $main_canvas_elem <Shift-5> "$main_canvas_elem xview scroll 1 units; redrawGrid"
+bind . <Right> "$mf.canvas_elem xview scroll 1 units; redrawGrid"
+bind . <Left> "$mf.canvas_elem xview scroll -1 units; redrawGrid"
+bind . <Down> "$mf.canvas_elem yview scroll 1 units; redrawGrid"
+bind . <Up> "$mf.canvas_elem yview scroll -1 units; redrawGrid"
+bind $main_canvas_elem <Configure> "redrawGrid"
 
 # Escape to Select mode
 bind . <Key-Escape> "setActiveToolGroup select; selectNode none"
