@@ -665,10 +665,10 @@ proc topologyElementsTree {} {
 	} else {
 		global mf
 
-		bind . <Right> "$mf.canvas_elem xview scroll 1 units"
-		bind . <Left> "$mf.canvas_elem xview scroll -1 units"
-		bind . <Down> "$mf.canvas_elem yview scroll 1 units"
-		bind . <Up> "$mf.canvas_elem yview scroll -1 units"
+		bind . <Right> "$mf.canvas_elem xview scroll 1 units; redrawGrid"
+		bind . <Left> "$mf.canvas_elem xview scroll -1 units; redrawGrid"
+		bind . <Down> "$mf.canvas_elem yview scroll 1 units; redrawGrid"
+		bind . <Up> "$mf.canvas_elem yview scroll -1 units; redrawGrid"
 
 		destroy $f.treegrid
 		destroy $f.tree $f.vscroll

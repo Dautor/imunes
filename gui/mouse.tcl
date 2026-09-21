@@ -577,45 +577,21 @@ proc moveToCanvas { canvas_id } {
 
 	set curcanvas [getFromRunning_gui "curcanvas"]
 
-	lassign [getCanvasSize $canvas_id] max_x max_y
-
 	set selected_nodes [selectedNodes]
 	foreach node_id $selected_nodes {
 		set type [getNodeType $node_id]
 
 		lassign [getNodeCoords $node_id] node_x node_y
-		if { $node_x > $max_x } {
-			global ${type}_iconwidth
-
-			set new_x [expr $max_x - [set $type\_iconwidth]/2]
-		} else {
-			set new_x $node_x
-		}
-
-		if { $node_y > $max_y } {
-			global ${type}_iconheight
-
-			set new_y [expr $max_y - [set $type\_iconheight]/2]
-		} else {
-			set new_y $node_y
-		}
+		set new_x $node_x
+		set new_y $node_y
 
 		if { "$new_x $new_y" != "$node_x $node_y" } {
 			setNodeCoords $node_id [snapCoordsToGrid $new_x $new_y]
 		}
 
 		lassign [getNodeLabelCoords $node_id] lnode_x lnode_y
-		if { $lnode_x > $max_x } {
-			set lnew_x $max_x
-		} else {
-			set lnew_x $lnode_x
-		}
-
-		if { $lnode_y > $max_y } {
-			set lnew_y $max_y
-		} else {
-			set lnew_y $lnode_y
-		}
+		set lnew_x $lnode_x
+		set lnew_y $lnode_y
 
 		if { "$lnew_x $lnew_y" != "$lnode_x $lnode_y" } {
 			setNodeLabelCoords $node_id "$lnew_x $lnew_y"
@@ -893,7 +869,7 @@ proc button1 { x y button } {
 	global newlink curobj changed
 	global router pc host lanswitch frswitch rj45 hub
 	global lastX lastY
-	global background selectbox
+	global selectbox
 	global resizemode resizeobj main_canvas_elem
 	global all_annotation_types
 
@@ -989,7 +965,7 @@ proc button1 { x y button } {
 
 	#determine whether we can create nodes on the current object
 	set object_drawable 0
-	foreach type "background grid $all_annotation_types" {
+	foreach type "\"\" grid $all_annotation_types" {
 		if { $type in [$main_canvas_elem gettags $curobj] } {
 			set object_drawable 1
 			break
@@ -1094,7 +1070,7 @@ proc button1 { x y button } {
 #****
 proc button1-motion { x y } {
 	global newlink changed
-	global lastX lastY sizex sizey selectbox background
+	global lastX lastY selectbox
 	global resizemode main_canvas_elem
 	global all_annotation_types
 
@@ -1142,15 +1118,10 @@ proc button1-motion { x y } {
 		setPoint_gui $point_id "$x $y"
 	} elseif {
 		$active_tool == "select" &&
-		$curobj == "" &&
-		$curtype == ""
-	} {
-		return
-	} elseif {
-		$active_tool == "select" &&
 		$curtype != "node_running" &&
 		($curobj == $selectbox ||
-		$curtype in "background grid" ||
+		$curobj == "" ||
+		$curtype == "" ||
 		($curobj ni [$main_canvas_elem find withtag "selected"] &&
 		$curtype != "selectmark") &&
 		! [isPseudoNode [lindex [$main_canvas_elem gettags $curobj] 1]])
@@ -1179,8 +1150,8 @@ proc button1-motion { x y } {
 		# actually we should check if curobj == bkgImage
 	} elseif {
 		$active_tool == "oval" &&
-		($curobj in "$newoval $background" ||
-		$curtype in "background grid $all_annotation_types")
+		($curobj in "$newoval" ||
+		$curtype in "\"\" grid $all_annotation_types")
 	} {
 		# Draw a new oval
 		if { $newoval == "" } {
@@ -1191,15 +1162,15 @@ proc button1-motion { x y } {
 				-tags "newoval"]
 
 			$main_canvas_elem raise $newoval \
-				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
+				"link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			$main_canvas_elem coords $newoval \
 				$lastX $lastY $x $y
 		}
 	} elseif {
 		$active_tool == "rectangle" &&
-		($curobj in "$newrectangle $background" ||
-		$curtype in "background grid $all_annotation_types")
+		($curobj in "$newrectangle" ||
+		$curtype in "\"\" grid $all_annotation_types")
 	} {
 		# Draw a new rectangle
 		if { $newrectangle == "" } {
@@ -1210,14 +1181,14 @@ proc button1-motion { x y } {
 				-tags "newrectangle"]
 
 			$main_canvas_elem raise $newrectangle \
-				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
+				"link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			$main_canvas_elem coords $newrectangle $lastX $lastY $x $y
 		}
 	} elseif {
 		$active_tool == "freeform" &&
-		($curobj in "$newfreeform $background" ||
-		$curtype in "background grid $all_annotation_types")
+		($curobj in "$newfreeform" ||
+		$curtype in "\"\" grid $all_annotation_types")
 	} {
 		# Draw a new freeform
 		if { $newfreeform == "" } {
@@ -1227,7 +1198,7 @@ proc button1-motion { x y } {
 				-tags "newfreeform"]
 
 			$main_canvas_elem raise $newfreeform \
-				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
+				"link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			xpos $newfreeform $x $y 2 blue
 		}
@@ -1333,7 +1304,7 @@ proc button1-motion { x y } {
 proc button1-release { x y } {
 	global newlink curobj grid
 	global changed selectbox
-	global lastX lastY sizex sizey
+	global lastX lastY
 	global autorearrange_enabled
 	global resizemode resizeobj
 	global newnode main_canvas_elem
@@ -1395,9 +1366,8 @@ proc button1-release { x y } {
 			}
 
 			lassign [getNodeLabelCoords $node_id] orig_lx orig_ly
-			if { $lx < 0 || $ly < 0 || $lx > $sizex || $ly > $sizey } {
-				set regular false
-			} elseif { "$orig_lx $orig_ly" != "$lx $ly" } {
+			if { "$orig_lx $orig_ly" != "$lx $ly" } {
+				
 				setNodeLabelCoords $node_id "$lx $ly"
 
 				if { [isPseudoNode $node_id] } {
@@ -1427,9 +1397,7 @@ proc button1-release { x y } {
 				} {
 					lassign [snapCoordsToGrid $x $y] x y
 					lassign [getNodeCoords $node_id] orig_x orig_y
-					if { $x < 0 || $y < 0 || $x > $sizex || $y > $sizey } {
-						set regular false
-					} elseif { "$orig_x $orig_y" != "$x $y" } {
+					if { "$orig_x $orig_y" != "$x $y" } {
 						set dx [expr { $x - $orig_x }]
 						set dy [expr { $y - $orig_y }]
 
@@ -1437,9 +1405,7 @@ proc button1-release { x y } {
 						set lx [expr { $orig_lx + $dx }]
 						set ly [expr { $orig_ly + $dy }]
 
-						if { $lx < 0 || $ly < 0 || $lx > $sizex || $ly > $sizey } {
-							set regular false
-						} elseif { "$orig_lx $orig_ly" != "$lx $ly" } {
+						if { "$orig_lx $orig_ly" != "$lx $ly" } {
 							#moving the nodelabel and selectbox assigned to the moving node
 
 							set view_dx [expr { int($dx / $zoom) }]
@@ -1461,27 +1427,6 @@ proc button1-release { x y } {
 					set x2 [expr {$x2 / $zoom}]
 					set y2 [expr {$y2 / $zoom}]
 
-					if { $x1 < 0 } {
-						set x2 [expr {$x2-$x1}]
-						set x1 0
-						set outofbounds 1
-					}
-					if { $y1 < 0 } {
-						set y2 [expr {$y2-$y1}]
-						set y1 0
-						set outofbounds 1
-					}
-					if { $x2 > $sizex } {
-						set x1 [expr {$x1-($x2-$sizex)}]
-						set x2 $sizex
-						set outofbounds 1
-					}
-					if { $y2 > $sizey } {
-						set y1 [expr {$y1-($y2-$sizey)}]
-						set y2 $sizey
-						set outofbounds 1
-					}
-
 					setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
 				}
 
@@ -1491,27 +1436,6 @@ proc button1-release { x y } {
 					set y1 [expr {[lindex $coordinates 1] / $zoom}]
 					set x2 [expr {[lindex $coordinates 6] / $zoom}]
 					set y2 [expr {[lindex $coordinates 13] / $zoom}]
-
-					if { $x1 < 0 } {
-						set x2 [expr {$x2-$x1}]
-						set x1 0
-						set outofbounds 1
-					}
-					if { $y1 < 0 } {
-						set y2 [expr {$y2-$y1}]
-						set y1 0
-						set outofbounds 1
-					}
-					if { $x2 > $sizex } {
-						set x1 [expr {$x1-($x2-$sizex)}]
-						set x2 $sizex
-						set outofbounds 1
-					}
-					if { $y2 > $sizey } {
-						set y1 [expr {$y1-($y2-$sizey)}]
-						set y2 $sizey
-						set outofbounds 1
-					}
 
 					setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
 				}
@@ -1525,23 +1449,6 @@ proc button1-release { x y } {
 
 					set shiftx 0
 					set shifty 0
-
-					if { $x1 < 0 } {
-						set shiftx -$x1
-						set outofbounds 1
-					}
-					if { $y1 < 0 } {
-						set shifty -$y1
-						set outofbounds 1
-					}
-					if { $x2 > $sizex } {
-						set shiftx [expr $sizex-$x2]
-						set outofbounds 1
-					}
-					if { $y2 > $sizey } {
-						set shifty [expr $sizey-$y2]
-						set outofbounds 1
-					}
 
 					set coordinates [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]]
 					set l [expr {[llength $coordinates]-1}]
@@ -1570,23 +1477,6 @@ proc button1-release { x y } {
 					set width [expr [lindex $bbox 2] - [lindex $bbox 0]]
 					set height [expr [lindex $bbox 3] - [lindex $bbox 1]]
 
-					if { [lindex $bbox 0] < 0 } {
-						set x1 5
-						set outofbounds 1
-					}
-					if { [lindex $bbox 1] < 0 } {
-						set y1 [expr $height/2]
-						set outofbounds 1
-					}
-					if { [lindex $bbox 2] > $sizex } {
-						set x1 [expr $sizex-$width+5]
-						set outofbounds 1
-					}
-					if { [lindex $bbox 3] > $sizey } {
-						set y1 [expr {$sizey-$height/2}]
-						set outofbounds 1
-					}
-
 					setAnnotationCoords $node_id "$x1 $y1"
 				}
 
@@ -1608,19 +1498,6 @@ proc button1-release { x y } {
 				set coordinates [$main_canvas_elem coords $img]
 				set x [expr { [lindex $coordinates 0] / $zoom }]
 				set y [expr { [lindex $coordinates 1] / $zoom }]
-
-				if { $x < 0 } {
-					set x 0
-				}
-				if { $y < 0 } {
-					set y 0
-				}
-				if { $x > $sizex } {
-					set x $sizex
-				}
-				if { $y > $sizey } {
-					set y $sizey
-				}
 
 				setPoint_gui $point_id "$x $y"
 
@@ -1736,6 +1613,25 @@ proc button1-release { x y } {
 	$main_canvas_elem config -cursor left_ptr
 }
 
+proc getCoords { view_position } {
+	global main_canvas_elem
+
+	lassign $view_position vx vy
+	set x [expr {int([$main_canvas_elem canvasx $vx])}]
+	set y [expr {int([$main_canvas_elem canvasy $vy])}]
+
+	return "$x $y"
+}
+
+proc getPan {} {
+	global main_canvas_elem
+
+	set wx [winfo width $main_canvas_elem]
+	set wy [winfo height $main_canvas_elem]
+
+	return [getCoords "[expr $wx/2] [expr $wy/2]"]
+}
+
 #****f* editor.tcl/button3background
 # NAME
 #   button3background -- button3 background
@@ -1754,99 +1650,18 @@ proc button3background { x y } {
 
 	set canvas_list [getFromRunning_gui "canvas_list"]
 	set curcanvas [getFromRunning_gui "curcanvas"]
+}
 
-	.button3menu delete 0 end
+proc panToCenter { position } {
+	global main_canvas_elem
 
-	#
-	# Show canvas background
-	#
-	set toggle_bkg_command {
-		setGlobalOption "show_background_image" - "toggle"
+	lassign $position x y
+	lassign [getPan] oldx oldy
 
-		redrawAll
-	}
-	.button3menu add checkbutton -label "Show background" \
-		-underline 5 -variable show_background_image \
-		-command $toggle_bkg_command
+	$main_canvas_elem scan mark $x $y
+	$main_canvas_elem scan dragto $oldx $oldy 1
 
-	.button3menu add separator
-	#
-	# Change canvas background
-	#
-	.button3menu add command -label "Change background" \
-		-command "changeBkgPopup"
-
-	#
-	# Remove canvas background
-	#
-	set tmp_command [list apply {
-		{ curcanvas canvas_bkg } {
-			global changed
-
-			removeCanvasBkg $curcanvas
-			if { $canvas_bkg != "" } {
-				removeImageReference $canvas_bkg $curcanvas
-			}
-
-			set changed 1
-			updateUndoLog
-			redrawAll
-		}
-	} \
-		$curcanvas \
-		[getCanvasBkg $curcanvas]
-	]
-	.button3menu add command \
-		-label "Remove background" \
-		-command $tmp_command
-
-	.button3menu.canvases delete 0 end
-
-	set m .button3menu.canvases
-
-	set mode normal
-	if { [llength $canvas_list] == 1 } {
-		set mode disabled
-	}
-
-	.button3menu add cascade \
-		-label "Set background from:" \
-		-menu $m \
-		-underline 0 \
-		-state $mode
-
-	foreach cnv $canvas_list {
-		set canv_name [getCanvasName $cnv]
-		set canvas_bkg [getCanvasBkg $cnv]
-		set curcanvas_size [getCanvasSize $curcanvas]
-		set othercanvsize [getCanvasSize $cnv]
-		if { $curcanvas != $cnv && $curcanvas_size == $othercanvsize } {
-
-			set tmp_command [list apply {
-				{ curcanvas canvas_bkg } {
-					setCanvasBkg $curcanvas $canvas_bkg
-					setImageReference $canvas_bkg $curcanvas
-
-					set changed 1
-					updateUndoLog
-					redrawAll
-				}
-			} \
-				$curcanvas \
-				$canvas_bkg
-			]
-			$m add command \
-				-label "$canv_name" \
-				-command $tmp_command
-		}
-	}
-
-	#
-	# Finally post the popup menu on current pointer position
-	#
-	set x [winfo pointerx .]
-	set y [winfo pointery .]
-	tk_popup .button3menu $x $y
+	redrawGrid
 }
 
 #****f* editor.tcl/setDefaultIcon

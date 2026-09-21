@@ -336,8 +336,6 @@ proc popupAnnotationApply { target callback_elems } {
 	global new$annotation_type
 
 	set curcanvas [getFromRunning_gui "curcanvas"]
-	# subtract 5 from each value and assign to variables sizex sizey
-	lassign [lmap n [getCanvasSize $curcanvas] {expr $n - 5}] sizex sizey
 
 	# default values
 	set annotation_color ""
@@ -397,34 +395,6 @@ proc popupAnnotationApply { target callback_elems } {
 		set new_order [removeFromList [getCanvasAnnotationOrder $curcanvas] $target]
 		lappend new_order $target
 		setCanvasAnnotationOrder $curcanvas $new_order
-
-		set annotation_coords [lmap n [$main_canvas_elem coords [set new$annotation_type]] {
-			expr int($n / [getActiveOption "zoom"])
-		}]
-
-		switch -exact -- $annotation_type {
-			"oval" -
-			"rectangle" {
-				if { [lindex $annotation_coords 0] < 0 } {
-					set annotation_coords [lreplace $annotation_coords 0 0 5]
-				}
-				if { [lindex $annotation_coords 1] < 0 } {
-					set annotation_coords [lreplace $annotation_coords 1 1 5]
-				}
-				if { [lindex $annotation_coords 2] > $sizex } {
-					set annotation_coords [lreplace $annotation_coords 2 2 $sizex]
-				}
-				if { [lindex $annotation_coords 3] > $sizey } {
-					set annotation_coords [lreplace $annotation_coords 3 3 $sizey]
-				}
-			}
-
-			"freeform" {
-			}
-
-			"text" {
-			}
-		}
 	} else {
 		# if annotation has moved or deleted while being edited
 		set annotation_coords [getAnnotationCoords $target]
@@ -970,59 +940,6 @@ proc selectmarkLeave { x y } {
 
 	.bottom.textbox config -text {}
 	$main_canvas_elem config -cursor left_ptr
-}
-
-#****f* annotations.tcl/backgroundImage
-# NAME
-#   backgroundImage -- set canvas background image
-# SYNOPSIS
-#   backgroundImage $img_data
-# FUNCTION
-#   Load and draw a background image on the specified canvas.
-# INPUTS
-#   * img -- variable that contains the image data in the memory
-#****
-proc backgroundImage { img } {
-	global sizex sizey main_canvas_elem
-
-	set zoom [getActiveOption "zoom"]
-	set e_sizex [expr {int($sizex * $zoom)}]
-	set e_sizey [expr {int($sizey * $zoom)}]
-
-	if { "$img" == "" } {
-		return
-	}
-
-	set img_data [getImageData $img]
-
-	image create photo Photo -data $img_data
-
-	set image_h [image height Photo]
-	set image_w [image width Photo]
-
-	set rx [expr $e_sizex * 1.0 / $image_w]
-	set ry [expr $e_sizey  * 1.0/ $image_h]
-
-	if { $rx < $ry } {
-		set factor [expr $rx * 100]
-	} else {
-		set factor [expr $ry * 100]
-	}
-
-	set factor [expr int($factor)]
-
-	if { $factor != 100 } {
-		if { [getImageZoomData $img $factor] != "" } {
-			image create photo Photo -data [getImageZoomData $img $factor]
-			set image Photo
-		} else {
-			set image [image% Photo $factor $img]
-		}
-	} else {
-		set image Photo
-	}
-
-	$main_canvas_elem create image 0 0 -anchor nw -image $image -tags "background"
 }
 
 #****f* annotations.tcl/image%

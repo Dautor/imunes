@@ -62,7 +62,7 @@ proc refreshToolBarNodes {} {
 #   Redraws all the objects on the current canvas.
 #****
 proc redrawAll {} {
-	global background sizex sizey grid
+	global background
 	global bkgImage main_canvas_elem
 	global changed
 
@@ -70,67 +70,10 @@ proc redrawAll {} {
 	set curcanvas [getFromRunning_gui "curcanvas"]
 
 	.bottom.zoom config -text "zoom [expr {int($zoom * 100)}]%"
-	set e_sizex [expr {int($sizex * $zoom)}]
-	set e_sizey [expr {int($sizey * $zoom)}]
-	set border 28
-	$main_canvas_elem configure -scrollregion \
-		"-$border -$border [expr {$e_sizex + $border}] \
-		[expr {$e_sizey + $border}]"
 
 	$main_canvas_elem delete all
 
-	set canvasBkgImage [getCanvasBkg $curcanvas]
-	if { [getActiveOption "show_background_image"] && "$canvasBkgImage" != "" } {
-		set ret [backgroundImage $canvasBkgImage]
-		if { "$ret" == 2 } {
-			set background [$main_canvas_elem create rectangle 0 0 $e_sizex $e_sizey \
-				-fill white -tags "background"]
-		} else {
-			set background [$main_canvas_elem create rectangle 0 0 $e_sizex $e_sizey \
-				-tags "background"]
-		}
-	} else {
-		set background [$main_canvas_elem create rectangle 0 0 $e_sizex $e_sizey \
-			-fill white -tags "background"]
-	}
-
-	if { [getActiveOption "show_annotations"] } {
-		foreach annotation_id [getFromRunning_gui "annotation_list"] {
-			if { [getAnnotationCanvas $annotation_id] == $curcanvas } {
-				drawAnnotation $annotation_id
-			}
-		}
-	}
-
-	# Grid
-	set e_grid [expr {int($grid * $zoom)}]
-	set e_grid2 [expr {$e_grid * 2}]
-	if { [getActiveOption "show_grid"] } {
-		for { set x $e_grid } { $x < $e_sizex } { incr x $e_grid } {
-			if { [expr {$x % $e_grid2}] != 0 } {
-				if { $zoom > 0.5 } {
-					$main_canvas_elem create line $x 1 $x $e_sizey \
-						-fill gray -dash {1 7} -tags "grid"
-				}
-			} else {
-				$main_canvas_elem create line $x 1 $x $e_sizey -fill gray -dash {1 3} \
-					-tags "grid"
-			}
-		}
-		for { set y $e_grid } { $y < $e_sizey } { incr y $e_grid } {
-			if { [expr {$y % $e_grid2}] != 0 } {
-				if { $zoom > 0.5 } {
-					$main_canvas_elem create line 1 $y $e_sizex $y \
-						-fill gray -dash {1 7} -tags "grid"
-				}
-			} else {
-				$main_canvas_elem create line 1 $y $e_sizex $y -fill gray -dash {1 3} \
-					-tags "grid"
-			}
-		}
-	}
-
-	$main_canvas_elem lower -withtags background
+	redrawGrid
 
 	foreach node_id [getFromRunning "node_list"] {
 		set node_canvas [getNodeCanvas $node_id]
@@ -500,11 +443,11 @@ proc drawLink { link_id } {
 				-width $link_width \
 				-tags "link $link_id $prev_point $point"]
 
-			$main_canvas_elem raise $newlink background
+			$main_canvas_elem raise $newlink
 			set newlink [$main_canvas_elem create line 0 0 0 0 \
 				-fill white -width [expr {$link_width + 4}] \
 				-tags "link $link_id $prev_point $point"]
-			$main_canvas_elem raise $newlink background
+			$main_canvas_elem raise $newlink
 
 			set prev_point $point
 		}
@@ -514,14 +457,14 @@ proc drawLink { link_id } {
 			-width $link_width \
 			-tags "link $link_id $prev_point $node2_id"]
 
-		$main_canvas_elem raise $newlink background
+		$main_canvas_elem raise $newlink
 		set newlink [$main_canvas_elem create line 0 0 0 0 \
 			-fill white -width [expr {$link_width + 4}] \
 			-tags "link $link_id $prev_point $node2_id"]
-		$main_canvas_elem raise $newlink background
+		$main_canvas_elem raise $newlink
 
-		$main_canvas_elem raise linklabel "link || background"
-		$main_canvas_elem raise interface "link || linklabel || background"
+		$main_canvas_elem raise linklabel "link"
+		$main_canvas_elem raise interface "link || linklabel"
 
 		set ang 0
 	} else {
@@ -530,11 +473,11 @@ proc drawLink { link_id } {
 			-width $link_width \
 			-tags "link $link_id $node1_id $node2_id"]
 
-		$main_canvas_elem raise $newlink background
+		$main_canvas_elem raise $newlink
 		set newlink [$main_canvas_elem create line 0 0 0 0 \
 			-fill white -width [expr {$link_width + 4}] \
 			-tags "link $link_id $node1_id $node2_id"]
-		$main_canvas_elem raise $newlink background
+		$main_canvas_elem raise $newlink
 
 		set ang [calcAngle $link_id]
 	}
@@ -543,8 +486,8 @@ proc drawLink { link_id } {
 	$main_canvas_elem create text 0 0 -tags "interface $node1_id $link_id" -justify center -angle $ang
 	$main_canvas_elem create text 0 0 -tags "interface $node2_id $link_id" -justify center -angle $ang
 
-	$main_canvas_elem raise linklabel "link || background"
-	$main_canvas_elem raise interface "link || linklabel || background"
+	$main_canvas_elem raise linklabel "link"
+	$main_canvas_elem raise interface "link || linklabel"
 }
 
 proc drawPseudoLink { link_id } {
@@ -557,11 +500,11 @@ proc drawPseudoLink { link_id } {
 		-fill [getLinkColor $link_id] -width $lwidth \
 		-tags "link $link_id $node1_id $node2_id" -arrow both]
 
-	$main_canvas_elem raise $newlink background
+	$main_canvas_elem raise $newlink
 	set newlink [$main_canvas_elem create line 0 0 0 0 \
 		-fill white -width [expr {$lwidth + 4}] \
 		-tags "link $link_id $node1_id $node2_id"]
-	$main_canvas_elem raise $newlink background
+	$main_canvas_elem raise $newlink
 
 	set ang [calcAngle $link_id]
 
@@ -569,8 +512,8 @@ proc drawPseudoLink { link_id } {
 	$main_canvas_elem create text 0 0 -tags "interface $node1_id $link_id" -justify center -angle $ang
 	$main_canvas_elem create text 0 0 -tags "interface $node2_id $link_id" -justify center -angle $ang
 
-	$main_canvas_elem raise linklabel "link || background"
-	$main_canvas_elem raise interface "link || linklabel || background"
+	$main_canvas_elem raise linklabel "link"
+	$main_canvas_elem raise interface "link || linklabel"
 
 	# XXX Invisible pseudo-links
 	if { $invisible == 1 } {
@@ -1668,7 +1611,7 @@ proc selectZoomPopupMenu { x y } {
 proc align2grid {} {
 	global main_canvas_elem
 
-	global sizex sizey grid changed
+	global grid changed
 
 	set node_objects [$main_canvas_elem find withtag node]
 	if { [llength $node_objects] == 0 } {
@@ -1677,6 +1620,8 @@ proc align2grid {} {
 
 	set step [expr {$grid * 4}]
 
+	return
+	# TODO
 	for { set x $step } { $x <= [expr {$sizex - $step}] } { incr x $step } {
 		for { set y $step } { $y <= [expr {$sizey - $step}] } { incr y $step } {
 			if { [llength $node_objects] == 0 } {
@@ -1714,7 +1659,7 @@ proc align2grid {} {
 #   rearranged.
 #****
 proc rearrange { mode } {
-	global autorearrange_enabled sizex sizey main_canvas_elem
+	global autorearrange_enabled main_canvas_elem
 
 	set curcanvas [getFromRunning_gui "curcanvas"]
 	set zoom [getActiveOption "zoom"]
@@ -1752,29 +1697,8 @@ proc rearrange { mode } {
 			set x_t($node_id) $x
 			set y_t($node_id) $y
 
-			if { $x > 0 } {
-				set fx [expr {1000 / ($x * $x + 100)}]
-			} else {
-				set fx 10
-			}
-			set dx [expr {$sizex - $x}]
-			if { $dx > 0 } {
-				set fx [expr {$fx - 1000 / ($dx * $dx + 100)}]
-			} else {
-				set fx [expr {$fx - 10}]
-			}
-
-			if { $y > 0 } {
-				set fy [expr {1000 / ($y * $y + 100)}]
-			} else {
-				set fy 10
-			}
-			set dy [expr {$sizey - $y}]
-			if { $dy > 0 } {
-				set fy [expr {$fy - 1000 / ($dy * $dy + 100)}]
-			} else {
-				set fy [expr {$fy - 10}]
-			}
+			set fx [expr {1000 / ($x * $x + 100)}]
+			set fy [expr {1000 / ($y * $y + 100)}]
 			set fx_t($node_id) $fx
 			set fy_t($node_id) $fy
 		}
@@ -1910,7 +1834,6 @@ proc rearrange { mode } {
 #   previus, next -- next, first -- first, last -- last.
 #****
 proc switchCanvas { direction } {
-	global sizex sizey
 
 	set curcanvas [getFromRunning_gui "curcanvas"]
 	set canvas_list [getFromRunning_gui "canvas_list"]
@@ -1982,9 +1905,6 @@ proc switchCanvas { direction } {
 	if { $rborder > $rmargin } {
 		.panwin.f1.hframe.t xview moveto [expr {1.0 * ($rborder - $width + 10) / $x}]
 	}
-
-	set sizex [lindex [getCanvasSize $curcanvas] 0]
-	set sizey [lindex [getCanvasSize $curcanvas] 1]
 
 	redrawAll
 }
@@ -2173,4 +2093,130 @@ proc setAnnotationOrderGUI { annotation_id direction } {
 	updateUndoLog
 
 	raiseAll
+}
+
+proc redrawGrid {} {
+    global main_canvas_elem zoom grid_coord_visible
+	set grid 100
+
+    $main_canvas_elem delete grid
+
+    if {![getActiveOption "show_grid"]} {
+        return
+    }
+
+    set level [expr {int(floor(log($zoom) / log(2.0)))}]
+    if {$level >= 0} {
+        set grid_scaled [expr {$grid / pow(2.0, $level)}]
+    } else {
+        set grid_scaled [expr {$grid * pow(2.0, -$level)}]
+    }
+
+    # ------------------------------------------------------------
+    # Grid spacing in screen/canvas coordinates
+    # ------------------------------------------------------------
+    set major_grid [expr {$grid_scaled * $zoom}]
+    set minor_grid [expr {$major_grid / 2.0}]
+
+    # ------------------------------------------------------------
+    # Visible canvas area
+    # ------------------------------------------------------------
+
+    set x1 [$main_canvas_elem canvasx 0]
+    set y1 [$main_canvas_elem canvasy 0]
+    set x2 [$main_canvas_elem canvasx [winfo width $main_canvas_elem]]
+    set y2 [$main_canvas_elem canvasy [winfo height $main_canvas_elem]]
+
+    # Start on a minor grid line
+    set start_x [expr {floor($x1 / $minor_grid) * $minor_grid}]
+    set start_y [expr {floor($y1 / $minor_grid) * $minor_grid}]
+
+    # ------------------------------------------------------------
+    # Vertical lines
+    # ------------------------------------------------------------
+
+    for {set x $start_x} {$x <= $x2} {set x [expr {$x + $minor_grid}]} {
+
+        # Determine which minor division this is.
+        set minor_index [expr {round($x / $minor_grid)}]
+
+        # Every 10th minor line is a major line.
+        if {$minor_index % 2 == 0} {
+
+            $main_canvas_elem create line \
+                $x $y1 $x $y2 \
+                -fill gray \
+                -dash {1 3} \
+                -tags grid
+
+			if { $grid_coord_visible != {} } {
+				set coord [expr {$x / $zoom}]
+
+				if {$coord == int($coord)} {
+					set coord [expr {int($coord)}]
+				}
+
+				$main_canvas_elem create text \
+					[expr {$x + 4}] \
+					[expr {$y1 + 4}] \
+					-text "$coord" \
+					-anchor nw \
+					-fill gray30 \
+					-font "TkDefaultFont 9" \
+					-tags grid
+			}
+        } else {
+
+            # Minor line
+            $main_canvas_elem create line \
+                $x $y1 $x $y2 \
+                -fill gray \
+                -dash {1 7} \
+                -tags grid
+        }
+    }
+
+    # ------------------------------------------------------------
+    # Horizontal lines
+    # ------------------------------------------------------------
+
+    for {set y $start_y} {$y <= $y2} {set y [expr {$y + $minor_grid}]} {
+
+        set minor_index [expr {round($y / $minor_grid)}]
+
+        # Every 10th minor line is a major line.
+        if {$minor_index % 2 == 0} {
+
+            $main_canvas_elem create line \
+                $x1 $y $x2 $y \
+                -fill gray \
+                -dash {1 3} \
+                -tags grid
+
+			if { $grid_coord_visible != {} } {
+				set coord [expr {$y / $zoom}]
+
+				if {$coord == int($coord)} {
+					set coord [expr {int($coord)}]
+				}
+
+				$main_canvas_elem create text \
+					[expr {$x1 + 4}] \
+					[expr {$y + 4}] \
+					-text "$coord" \
+					-anchor nw \
+					-fill gray30 \
+					-font "TkDefaultFont 9" \
+					-tags grid
+			}
+        } else {
+
+            # Minor line
+            $main_canvas_elem create line \
+                $x1 $y $x2 $y \
+                -fill gray \
+                -dash {1 7} \
+                -tags grid
+        }
+    }
 }
