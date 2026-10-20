@@ -1940,8 +1940,14 @@ proc animate {} {
 # INPUTS
 #   * dir -- zoom direction (up or down)
 #****
-proc zoom { dir } {
-	global zoom_stops
+proc zoom { dir {view_position {}}} {
+	global zoom_stops main_canvas_elem
+
+	if {$view_position == {}} {
+		set wx [winfo width $main_canvas_elem]
+		set wy [winfo height $main_canvas_elem]
+		set view_position "[expr $wx/2] [expr $wy/2]"
+	}
 
 	set zoom [getActiveOption "zoom"]
 	set minzoom [lindex $zoom_stops 0]
@@ -1963,6 +1969,13 @@ proc zoom { dir } {
 				}
 				setGlobalOption "zoom" $newzoom
 			}
+
+			lassign [getCoords $view_position] oldx oldy
+			set dx [expr {round($oldx * (1.0 - $newzoom / $zoom))}]
+			set dy [expr {round($oldy * (1.0 - $newzoom / $zoom))}]
+			$main_canvas_elem scan mark 0 0
+			$main_canvas_elem scan dragto $dx $dy 1
+			
 			redrawAll
 		}
 		"up" {
@@ -1979,6 +1992,13 @@ proc zoom { dir } {
 				}
 				setGlobalOption "zoom" $newzoom
 			}
+
+			lassign [getCoords $view_position] oldx oldy
+			set dx [expr {round($oldx * (1.0 - $newzoom / $zoom))}]
+			set dy [expr {round($oldy * (1.0 - $newzoom / $zoom))}]
+			$main_canvas_elem scan mark 0 0
+			$main_canvas_elem scan dragto $dx $dy 1
+
 			redrawAll
 		}
 		default {

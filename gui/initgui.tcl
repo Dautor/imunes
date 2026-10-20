@@ -1366,8 +1366,8 @@ bind $main_canvas_elem <B1-ButtonRelease> "button1-release %x %y"
 bind . <Delete> deleteSelection
 bind . <Shift-Delete> "deleteSelection 0 no_warning"
 
-bind $main_canvas_elem <Control-Button-4> "zoom up; break"
-bind $main_canvas_elem <Control-Button-5> "zoom down; break"
+bind $main_canvas_elem <Control-Button-4> "zoom up {%x %y}; break"
+bind $main_canvas_elem <Control-Button-5> "zoom down {%x %y}; break"
 
 bind . <KeyPress> {
     if { "%K" in "Control_L Control_R" } {
