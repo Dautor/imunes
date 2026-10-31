@@ -153,6 +153,9 @@ if { $isOSmac_gui } {
 	set rightClick "<Button-3>"
 }
 
+global status_line_priority
+set status_line_priority 1
+
 # Packets required for GUI
 #package require Img
 
@@ -1356,7 +1359,7 @@ $main_canvas_elem bind point <Any-Enter> "pointEnter"
 $main_canvas_elem bind point $rightClick "removePointGUI"
 $main_canvas_elem bind point <Any-Leave> "$main_canvas_elem config -cursor left_ptr"
 
-bind $main_canvas_elem <Motion> "statusLineGUI \[getCoords \"%x %y\"]"
+bind $main_canvas_elem <Motion> "statusLineGUI \[getCoords \"%x %y\"] #777777 1"
 
 bind $main_canvas_elem <1> "button1 %x %y none"
 bind $main_canvas_elem <Control-Button-1> "button1 %x %y ctrl"
