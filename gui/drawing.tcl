@@ -2168,7 +2168,7 @@ proc redrawGrid {} {
 					[expr {$y1 + 4}] \
 					-text "$coord" \
 					-anchor nw \
-					-fill gray30 \
+					-fill #777777 \
 					-font "TkDefaultFont 9" \
 					-tags grid
 			}
@@ -2212,7 +2212,7 @@ proc redrawGrid {} {
 					[expr {$y + 4}] \
 					-text "$coord" \
 					-anchor nw \
-					-fill gray30 \
+					-fill #777777 \
 					-font "TkDefaultFont 9" \
 					-tags grid
 			}
