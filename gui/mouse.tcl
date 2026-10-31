@@ -1537,7 +1537,7 @@ proc button1-release { x y } {
 			}
 
 			$main_canvas_elem config -cursor watch
-			.bottom.textbox config -text ""
+			statusLineGUI ""
 
 			redrawAll
 
@@ -1708,8 +1708,7 @@ proc nodeEnter {} {
 	set node_id [lindex [$main_canvas_elem gettags current] 1]
 	if { [isPseudoNode $node_id] } {
 		lassign [nodeFromPseudoNode $node_id] real_node_id real_iface_id
-		.bottom.textbox config -foreground "black" \
-			-text "pseudo {$node_id} from {$real_node_id} [getNodeName $real_node_id]:[getIfcName $real_node_id $real_iface_id]"
+		statusLineGui "pseudo {$node_id} from {$real_node_id} [getNodeName $real_node_id]:[getIfcName $real_node_id $real_iface_id]"
 
 		return
 	}
@@ -1722,7 +1721,7 @@ proc nodeEnter {} {
 	#Show node error only if in exec mode
 	if { [isRunningNode $node_id] } {
 		if { [isErrorNode $node_id] && [getStateErrorMsgNode $node_id] != "" } {
-			.bottom.textbox configure -text "{$node_id} ERROR: [getStateErrorMsgNode $node_id]" -foreground "red"
+			statusLineGUI "{$node_id} ERROR: [getStateErrorMsgNode $node_id]" "red"
 
 			return
 		}
@@ -1744,7 +1743,7 @@ proc nodeEnter {} {
 		if { $line != "" } {
 			# remove last \n
 			set line [string range $line 0 end-1]
-			.bottom.textbox config -text "{$node_id} IFACES ERRORS: $line" -foreground "red"
+			statusLineGUI "{$node_id} IFACES ERRORS: $line" "red"
 
 			return
 		}
@@ -1763,7 +1762,7 @@ proc nodeEnter {} {
 			set line "$line [getIfcName $node_id $iface_id]:[join [getIfcIPv4addrs $node_id $iface_id] ", "]"
 		}
 	}
-	.bottom.textbox config -text "$line" -foreground "black"
+	statusLineGUI "$line"
 
 	showCfg $node_id
 	showRoute $node_id
@@ -1787,8 +1786,7 @@ proc linkEnter {} {
 	if { [lsearch [getFromRunning "link_list"] $link_id] == -1 } {
 		return
 	}
-	set line "$link_id: [getLinkBandwidthString $link_id] [getLinkDelayString $link_id]"
-	.bottom.textbox config -text "$line" -foreground "black"
+	statusLineGUI "$link_id: [getLinkBandwidthString $link_id] [getLinkDelayString $link_id]"
 }
 
 #****f* editor.tcl/anyLeave
@@ -1802,7 +1800,7 @@ proc linkEnter {} {
 proc anyLeave {} {
 	global main_canvas_elem
 
-	.bottom.textbox config -text "" -foreground "black"
+	statusLineGUI ""
 
 	$main_canvas_elem delete -withtag showCfgPopup
 	$main_canvas_elem delete -withtag route
@@ -1864,7 +1862,7 @@ proc deleteSelection { { keep_other_ifaces 0 } { no_warning "" } } {
 	}
 
 	$main_canvas_elem config -cursor left_ptr
-	.bottom.textbox config -text ""
+	statusLineGUI ""
 
 	return true
 }
