@@ -969,10 +969,15 @@ proc button1 { x y button } {
 
 	#determine whether we can create nodes on the current object
 	set object_drawable 0
-	foreach type "\"\" grid $all_annotation_types" {
-		if { $type in [$main_canvas_elem gettags $curobj] } {
-			set object_drawable 1
-			break
+	set cur_tags [$main_canvas_elem gettags $curobj]
+	if { $cur_tags == {} } {
+		set object_drawable 1
+	} else {
+		foreach type "grid $all_annotation_types" {
+			if { $type in $cur_tags } {
+				set object_drawable 1
+				break
+			}
 		}
 	}
 
